@@ -1,6 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
+const express = require('express');
 
 const client = new Client({
   authStrategy: new LocalAuth(),
@@ -21,6 +22,18 @@ client.on('qr', qr => {
 
 client.on('ready', () => {
   console.log('✅ WhatsApp client is ready!');
+
+  // Start express server ONLY after WhatsApp is ready
+  const app = express();
+  const PORT = process.env.PORT || 3000;
+
+  app.get('/', (req, res) => {
+    res.send('🤖 WhatsApp bot is running and connected ✅');
+  });
+
+  app.listen(PORT, () => {
+    console.log(`🌍 Express server running on port ${PORT}`);
+  });
 });
 
 client.on('message', msg => {
@@ -111,16 +124,3 @@ client.on('message', msg => {
 });
 
 client.initialize();
-
-// ------------------- Express server to keep app alive -------------------
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-  res.send('🤖 WhatsApp bot is running');
-});
-
-app.listen(PORT, () => {
-  console.log(`🌍 Express server running on port ${PORT}`);
-});
