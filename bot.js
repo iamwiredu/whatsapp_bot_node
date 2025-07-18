@@ -5,7 +5,10 @@ const express = require('express');
 
 const client = new Client({
   authStrategy: new LocalAuth(),
-  puppeteer: { headless: true }
+  puppeteer: {
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  }
 });
 
 const MENU = {
