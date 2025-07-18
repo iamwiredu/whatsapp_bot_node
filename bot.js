@@ -35,7 +35,8 @@ client.on('ready', () => {
     console.log(`🌍 Express server running on port ${PORT}`);
   });
 });
-
+//current bot
+// file
 client.on('message', msg => {
   const phone = msg.from.split('@')[0];
   const message = msg.body.trim().toLowerCase();
