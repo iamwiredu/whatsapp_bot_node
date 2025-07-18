@@ -111,3 +111,16 @@ client.on('message', msg => {
 });
 
 client.initialize();
+
+
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('WhatsApp bot is running');
+});
+
+app.listen(PORT, () => {
+  console.log(`🌍 Dummy server listening on port ${PORT}`);
+});
