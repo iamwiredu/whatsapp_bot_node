@@ -86,8 +86,8 @@ client.on('message', async msg => {
         // 📨 Let the user know their order is being processed
         await client.sendMessage(phone+ '@c.us', "⏳ Processing your order...");
 
-        // 🔗 Send order to Django API
-        const response = await axios.post('https://grabtexts.shop/create-order/', {
+        // 🔗 Send order to Django APIf
+        const response = await axios.post('https://www.grabtexts.shop/create-order/', {
           phone_number: phone,
           item,
           quantity,
@@ -110,7 +110,7 @@ client.on('message', async msg => {
         session.current_step = 'start';
       } catch (err) {
         console.error("❌ Error creating order:", err.response?.data || err.message);
-        await client.sendMessage(phone + '@c.us', "⚠️ Error processing your order. Please type *hi* to try again.");
+        await client.sendMessage(phone + '@c.us', "⚠️ Error: " + error_from_django)
         session.temp_order_data = {};
         session.current_step = 'start';
       }
