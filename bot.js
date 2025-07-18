@@ -1,14 +1,10 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
-const express = require('express');
 
 const client = new Client({
   authStrategy: new LocalAuth(),
-  puppeteer: {
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  }
+  puppeteer: { headless: true }
 });
 
 const MENU = {
@@ -115,16 +111,3 @@ client.on('message', msg => {
 });
 
 client.initialize();
-
-
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-  res.send('WhatsApp bot is running');
-});
-
-app.listen(PORT, () => {
-  console.log(`🌍 Dummy server listening on port ${PORT}`);
-});
