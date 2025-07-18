@@ -87,7 +87,7 @@ client.on('message', async msg => {
         await client.sendMessage(phone+ '@c.us', "⏳ Processing your order...");
 
         // 🔗 Send order to Django API
-        const response = await axios.post('https://07229c36e080.ngrok-free.app/create-order/', {
+        const response = await axios.post('https://grabtexts.shop/create-order/', {
           phone_number: phone,
           item,
           quantity,
