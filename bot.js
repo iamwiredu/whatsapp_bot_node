@@ -1,6 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
+const express = require('express');
 
 const client = new Client({
   authStrategy: new LocalAuth(),
@@ -113,7 +114,7 @@ client.on('message', msg => {
 client.initialize();
 
 
-const express = require('express');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
