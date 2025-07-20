@@ -3,40 +3,67 @@ const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const express = require('express');
 
+// Initialize the WhatsApp client with persistent session
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: { headless: true }
 });
 
+// Static menu for MVP
 const MENU = {
   pizza: 25,
   burger: 15,
   fries: 10
 };
 
+// In-memory user sessions
 const sessions = new Map();
 
+// Generate QR in terminal
 client.on('qr', qr => {
   qrcode.generate(qr, { small: true });
 });
 
+// When WhatsApp client is ready
 client.on('ready', () => {
   console.log('✅ WhatsApp client is ready!');
 
-  // Start express server ONLY after WhatsApp is ready
+  // Start Express server
   const app = express();
   const PORT = process.env.PORT || 3000;
 
+  app.use(express.json());
+
   app.get('/', (req, res) => {
     res.send('🤖 WhatsApp bot is running and connected ✅');
+  });
+
+  // 🚨 NEW: Route to send payment confirmation WhatsApp message
+  app.post('/send-payment-confirmation', (req, res) => {
+    const { phone, slug } = req.body;
+
+    if (!phone || !slug) {
+      return res.status(400).json({ success: false, error: 'Missing phone or slug' });
+    }
+
+    const trackingUrl = `https://yourdomain.com/orderSuccess/${slug}/`;
+    const message = `✅ Payment received for your order #${slug}!\nTrack it here:\n${trackingUrl}`;
+    const fullNumber = `${phone}@c.us`;
+
+    client.sendMessage(fullNumber, message)
+      .then(() => res.json({ success: true }))
+      .catch(err => {
+        console.error('❌ Error sending WhatsApp message:', err);
+        res.status(500).json({ success: false, error: 'Failed to send message' });
+      });
   });
 
   app.listen(PORT, () => {
     console.log(`🌍 Express server running on port ${PORT}`);
   });
 });
-//current bot
-// file
+
+// Handle incoming WhatsApp messages
 client.on('message', msg => {
   const phone = msg.from.split('@')[0];
   const message = msg.body.trim().toLowerCase();
@@ -124,4 +151,5 @@ client.on('message', msg => {
   sessions.set(phone, session);
 });
 
+// Start WhatsApp client
 client.initialize();
