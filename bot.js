@@ -46,7 +46,7 @@ client.on('ready', () => {
       return res.status(400).json({ success: false, error: 'Missing phone or slug' });
     }
 
-    const trackingUrl = `https://yourdomain.com/orderSuccess/${slug}/`;
+    const trackingUrl = `https://grabtexts.shop/orderSuccess/${slug}/`;
     const message = `✅ Payment received for your order #${slug}!\nTrack it here:\n${trackingUrl}`;
     const fullNumber = `${phone}@c.us`;
 
