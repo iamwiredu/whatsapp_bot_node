@@ -77,7 +77,7 @@ client.on('message', msg => {
 
   if (message === 'hi') {
     client.sendMessage(msg.from,
-      `👋 Welcome to *GrabTexts*!\n\n💈 Powered by *Kuffour's Barbering Services*.\n🎉 Get a *FREE hostel haircut* when you order today!\n\nType *1* or *kbarb* to view the service menu.`)
+      `👋 Welcome to *GrabTexts*!\n\n💈 Powered by *Kuffour's Barbering Services*.\n🎉 Get a *FREE hostel haircut* when you order today! KNUST only.\n\nType *1* or *kbarb* to view the service menu.`)
       .catch(console.error);
 
     session.current_step = 'awaiting_service_code';
