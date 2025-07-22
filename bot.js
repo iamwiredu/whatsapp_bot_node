@@ -9,12 +9,12 @@ const client = new Client({
   puppeteer: { headless: true }
 });
 
-// Kings Barbering Services Menu
-const KINGS_MENU = {
-  "haircut and dye (black)": 40,
-  "haircut, blow and dye": 60,
-  "shavings": 10
-};
+// Kings Barbering Services Menu (Numbered)
+const KINGS_MENU = [
+  { name: "haircut and dye (black)", price: 40 },
+  { name: "haircut, blow and dye", price: 60 },
+  { name: "shavings", price: 10 }
+];
 
 // In-memory session store
 const sessions = new Map();
@@ -77,7 +77,7 @@ client.on('message', msg => {
   const session = sessions.get(phone);
 
   if (message === 'hi') {
-    client.sendMessage(msg.from, 
+    client.sendMessage(msg.from,
       `👋 Welcome to *GrabTexts*!\n\n💈 Powered by *Kings Barbering Services*.\n🎉 Get a *FREE hostel haircut* when you order today!\n\nType *1* or *kbarb* to view the service menu.`)
       .catch(console.error);
 
@@ -89,11 +89,10 @@ client.on('message', msg => {
   switch (session.current_step) {
     case 'awaiting_service_code':
       if (message === '1' || message === 'kbarb') {
-        const kingsMenuText = "💈 *Kings Barbering Services Menu*\n" + Object.entries(KINGS_MENU)
-          .map(([item, price]) => `- ${item} - GH₵${price}`)
-          .join('\n');
+        const kingsMenuText = "💈 *Kings Barbering Services Menu*\n" +
+          KINGS_MENU.map((item, index) => `${index + 1}. ${item.name} - GH₵${item.price}`).join('\n');
 
-        client.sendMessage(msg.from, `${kingsMenuText}\n\nPlease type the *name* of the service you'd like to order.`)
+        client.sendMessage(msg.from, `${kingsMenuText}\n\nPlease reply with the *number* of the service you'd like to order.`)
           .catch(console.error);
 
         session.current_step = 'awaiting_item';
@@ -103,30 +102,24 @@ client.on('message', msg => {
       break;
 
     case 'awaiting_item':
-      if (KINGS_MENU[message]) {
-        session.temp_order_data.item = message;
-        session.current_step = 'awaiting_quantity';
-        client.sendMessage(msg.from, `✂️ How many *${message}s* would you like?`).catch(console.error);
-      } else {
-        client.sendMessage(msg.from, "❌ That service is not available. Please type one from the list above.").catch(console.error);
-      }
-      break;
-
-    case 'awaiting_quantity':
-      if (/^\d+$/.test(message)) {
-        session.temp_order_data.quantity = parseInt(message);
+      const selectedIndex = parseInt(message) - 1;
+      if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < KINGS_MENU.length) {
+        const selectedItem = KINGS_MENU[selectedIndex];
+        session.temp_order_data.item = selectedItem.name;
+        session.temp_order_data.unit_price = selectedItem.price;
+        session.temp_order_data.quantity = 1;  // Auto set quantity to 1
         session.current_step = 'awaiting_address';
-        client.sendMessage(msg.from, "📍 Please enter your *hostel and room number* for the service.").catch(console.error);
+        client.sendMessage(msg.from, `📍 Please enter your *hostel and room number* for 1 *${selectedItem.name}*.`).catch(console.error);
       } else {
-        client.sendMessage(msg.from, "❌ Please enter a valid number.").catch(console.error);
+        client.sendMessage(msg.from, "❌ Invalid selection. Please choose a number from the menu.").catch(console.error);
       }
       break;
 
     case 'awaiting_address':
       const item = session.temp_order_data.item;
       const quantity = session.temp_order_data.quantity;
+      const unitPrice = session.temp_order_data.unit_price;
       const address = msg.body;
-      const unitPrice = KINGS_MENU[item];
       const amountPesewas = unitPrice * quantity;
 
       client.sendMessage(msg.from, "⏳ Processing your order...").catch(console.error);
@@ -140,7 +133,9 @@ client.on('message', msg => {
       }).then(response => {
         if (response.data.success) {
           const paymentLink = response.data.order_url;
-          client.sendMessage(msg.from, `✅ Order received!\n🧾 ${quantity} x ${item}\n📍 ${address}\n\n💳 Pay here:\n${paymentLink}`).catch(console.error);
+          client.sendMessage(msg.from,
+            `✅ Order received!\n🧾 ${quantity} x ${item}\n📍 ${address}\n\n💳 Pay here:\n${paymentLink}`)
+            .catch(console.error);
         } else {
           client.sendMessage(msg.from, "⚠️ Something went wrong. Could not create order.").catch(console.error);
         }
