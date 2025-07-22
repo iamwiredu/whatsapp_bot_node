@@ -13,7 +13,6 @@ const client = new Client({
 const KINGS_MENU = [
   { name: "haircut and dye (black)", price: 40 },
   { name: "haircut, blow and dye", price: 60 },
-  { name: "shavings", price: 10 }
 ];
 
 // In-memory session store
