@@ -39,14 +39,14 @@ client.on('ready', () => {
 
   // Payment confirmation route
   app.post('/send-payment-confirmation', (req, res) => {
-    const { phone, slug } = req.body;
+    const { phone, slug, order_id } = req.body;
 
     if (!phone || !slug) {
       return res.status(400).json({ success: false, error: 'Missing phone or slug' });
     }
 
-    const trackingUrl = `https://grabtexts.shop/orderSuccess/${slug}/`;
-    const message = `✅ Payment received for your order #${slug}!\nTrack it here:\n${trackingUrl}`;
+    const trackingUrl = `https://grabtexts.shop/payment-success/${slug}/`;
+    const message = `✅ Payment received for your order #${order_id}!\nTrack it here:\n${trackingUrl}`;
     const fullNumber = `${phone}@c.us`;
 
     client.sendMessage(fullNumber, message)
