@@ -45,8 +45,8 @@ client.on('ready', () => {
       return res.status(400).json({ success: false, error: 'Missing phone or slug' });
     }
 
-    const trackingUrl = `https://grabtexts.shop/payment-success/${slug}/`;
-    const message = `✅ Payment received for your order #${order_id}!\nTrack it here:\n${trackingUrl}`;
+    const trackingUrl = `https://wa.me/+233559665774`;
+    const message = `✅ Payment received for your order #${order_id}!\nWe will give you a call in a sec.\ncontact support at ${trackingUrl}`;
     const fullNumber = `${phone}@c.us`;
 
     client.sendMessage(fullNumber, message)
@@ -78,7 +78,7 @@ client.on('message', msg => {
 
   if (message === 'hi') {
     client.sendMessage(msg.from,
-      `👋 Welcome to *GrabTexts*!\n\n💈 Powered by *Kings Barbering Services*.\n🎉 Get a *FREE hostel haircut* when you order today!\n\nType *1* or *kbarb* to view the service menu.`)
+      `👋 Welcome to *GrabTexts*!\n\n💈 Powered by *Kuffour's Barbering Services*.\n🎉 Get a *FREE hostel haircut* when you order today!\n\nType *1* or *kbarb* to view the service menu.`)
       .catch(console.error);
 
     session.current_step = 'awaiting_service_code';
