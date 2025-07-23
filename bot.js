@@ -88,7 +88,7 @@ client.on('message', msg => {
   switch (session.current_step) {
     case 'awaiting_service_code':
       if (message === '1' || message === 'kbarb') {
-        const kingsMenuText = "💈 *Kings Barbering Services Menu*\n" +
+        const kingsMenuText = "💈 *Kuffour's Barbering Services Menu*\n" +
           KINGS_MENU.map((item, index) => `${index + 1}. ${item.name} - GH₵${item.price}`).join('\n');
 
         client.sendMessage(msg.from, `${kingsMenuText}\n\nPlease reply with the *number* of the service you'd like to order.`)
