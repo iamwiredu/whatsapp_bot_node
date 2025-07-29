@@ -48,7 +48,7 @@ client.on('ready', () => {
     const { phone, slug, item, quantity, amount, addons } = req.body;
 
     if (!phone || !slug) {
-      return res.status(400).json({ success: false, error: 'Missing phone or slug' });
+      return res.status(400).json({ success: false, error: `${phone}` });
     }
 
     const fullNumber = `${phone}@c.us`;
