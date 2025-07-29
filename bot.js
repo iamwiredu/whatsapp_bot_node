@@ -65,7 +65,7 @@ client.on('message', async (msg) => {
   // Initial trigger
   if (message === 'hi') {
     client.sendMessage(msg.from,
-      `👋 Welcome to *GrabTexts*!\n\n🍽️ To get started, type the code of your restaurant (e.g. *kbarb*, *sizzlers*)`)
+      `👋 Welcome to *GrabTexts*!\n\n🍽️ To get started, type the code of your restaurant or service (e.g. *kbarb*, *sizzlers*)`)
       .catch(console.error);
 
     session.current_step = 'awaiting_restaurant_code';
