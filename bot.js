@@ -3,31 +3,20 @@ const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const express = require('express');
 
-// Initialize WhatsApp client
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: { headless: true }
 });
 
-// Kings Barbering Services Menu (Numbered)
-const KINGS_MENU = [
-  { name: "haircut and dye (black)", price: 40 },
-  { name: "haircut, blow and dye", price: 60 },
-];
-
-// In-memory session store
 const sessions = new Map();
 
-// Generate QR code in terminal
 client.on('qr', qr => {
   qrcode.generate(qr, { small: true });
 });
 
-// When WhatsApp client is ready
 client.on('ready', () => {
   console.log('✅ WhatsApp client is ready!');
 
-  // Express server setup
   const app = express();
   const PORT = process.env.PORT || 3000;
   app.use(express.json());
@@ -36,7 +25,6 @@ client.on('ready', () => {
     res.send('🤖 WhatsApp bot is running and connected ✅');
   });
 
-  // Payment confirmation route
   app.post('/send-payment-confirmation', (req, res) => {
     const { phone, slug, order_id } = req.body;
 
@@ -45,7 +33,7 @@ client.on('ready', () => {
     }
 
     const trackingUrl = `https://wa.me/+233559665774`;
-    const message = `✅ Payment received for your order #${order_id}!\nWe will give you a call in a sec.\ncontact support at ${trackingUrl}`;
+    const message = `✅ Payment received for your order #${order_id}!\nWe will give you a call in a sec.\nContact support at ${trackingUrl}`;
     const fullNumber = `${phone}@c.us`;
 
     client.sendMessage(fullNumber, message)
@@ -61,8 +49,7 @@ client.on('ready', () => {
   });
 });
 
-// Handle incoming WhatsApp messages
-client.on('message', msg => {
+client.on('message', async (msg) => {
   const phone = msg.from.split('@')[0];
   const message = msg.body.trim().toLowerCase();
 
@@ -75,51 +62,97 @@ client.on('message', msg => {
 
   const session = sessions.get(phone);
 
+  // Initial trigger
   if (message === 'hi') {
     client.sendMessage(msg.from,
-      `👋 Welcome to *GrabTexts*!\n\n💈 Powered by *Kuffour's Barbering Services*.\n🎉 Get a *FREE hostel haircut* when you order today! KNUST only.\n\nType *1* or *kbarb* to view the service menu.`)
+      `👋 Welcome to *GrabTexts*!\n\n🍽️ To get started, type the code of your restaurant (e.g. *kbarb*, *sizzlers*)`)
       .catch(console.error);
 
-    session.current_step = 'awaiting_service_code';
+    session.current_step = 'awaiting_restaurant_code';
     session.temp_order_data = {};
     return;
   }
 
   switch (session.current_step) {
-    case 'awaiting_service_code':
-      if (message === '1' || message === 'kbarb') {
-        const kingsMenuText = "💈 *Kuffour's Barbering Services Menu*\n" +
-          KINGS_MENU.map((item, index) => `${index + 1}. ${item.name} - GH₵${item.price}`).join('\n');
+    case 'awaiting_restaurant_code':
+      try {
+        const response = await axios.get(`https://grabtexts.shop/api/menu/${message}/`);
+        const { restaurant, menu } = response.data;
 
-        client.sendMessage(msg.from, `${kingsMenuText}\n\nPlease reply with the *number* of the service you'd like to order.`)
-          .catch(console.error);
+        if (!menu || menu.length === 0) {
+          client.sendMessage(msg.from, `😕 No menu items found for *${restaurant}*.`).catch(console.error);
+          return;
+        }
 
+        session.temp_order_data.restaurant_code = message;
+        session.temp_order_data.menu = menu;
+
+        const menuText = `🍽️ *Menu from ${restaurant}*\n` + menu.map((item, i) => {
+          const line = `${i + 1}. ${item.name} - GH₵${item.price}`;
+          const addons = item.addons.map(a => `+ ${a.name} (GH₵${a.price / 100})`).join(', ');
+          return addons ? `${line}\n    Add-ons: ${addons}` : line;
+        }).join('\n');
+
+        client.sendMessage(msg.from, `${menuText}\n\nReply with the *number* of the item you want to order.`).catch(console.error);
         session.current_step = 'awaiting_item';
-      } else {
-        client.sendMessage(msg.from, "❌ Please type *1* or *kbarb* to continue.").catch(console.error);
+      } catch (error) {
+        client.sendMessage(msg.from, `❌ Invalid restaurant code or fetch error.`).catch(console.error);
+        session.current_step = 'start';
       }
       break;
 
     case 'awaiting_item':
-      const selectedIndex = parseInt(message) - 1;
-      if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < KINGS_MENU.length) {
-        const selectedItem = KINGS_MENU[selectedIndex];
-        session.temp_order_data.item = selectedItem.name;
-        session.temp_order_data.unit_price = selectedItem.price;
-        session.temp_order_data.quantity = 1;  // Auto set quantity to 1
-        session.current_step = 'awaiting_address';
-        client.sendMessage(msg.from, `📍 Please enter your *hostel and room number* for 1 *${selectedItem.name}*.`).catch(console.error);
+      const index = parseInt(message) - 1;
+      const menu = session.temp_order_data.menu;
+
+      if (!isNaN(index) && menu && menu[index]) {
+        const selected = menu[index];
+        session.temp_order_data.item = selected.name;
+        session.temp_order_data.unit_price = selected.price;
+        session.temp_order_data.quantity = 1;
+        session.temp_order_data.addons = selected.addons || [];
+        session.current_step = selected.addons.length > 0 ? 'awaiting_addon' : 'awaiting_address';
+
+        if (selected.addons.length > 0) {
+          const addonOptions = selected.addons.map((addon, i) => `${i + 1}. ${addon.name} (+GH₵${addon.price / 100})`).join('\n');
+          client.sendMessage(msg.from, `➕ Select *add-ons* by typing the numbers separated by comma (or type 0 to skip):\n${addonOptions}`).catch(console.error);
+        } else {
+          client.sendMessage(msg.from, `📍 Please enter your *delivery address*.`).catch(console.error);
+        }
       } else {
-        client.sendMessage(msg.from, "❌ Invalid selection. Please choose a number from the menu.").catch(console.error);
+        client.sendMessage(msg.from, `❌ Invalid selection. Reply with a valid number.`).catch(console.error);
       }
       break;
 
+    case 'awaiting_addon':
+      const addonIndices = message.split(',').map(m => parseInt(m.trim()) - 1);
+      const availableAddons = session.temp_order_data.addons;
+      const selectedAddons = [];
+
+      if (!(addonIndices.length === 1 && addonIndices[0] === -1)) {
+        addonIndices.forEach(i => {
+          if (!isNaN(i) && availableAddons[i]) {
+            selectedAddons.push(availableAddons[i]);
+          }
+        });
+      }
+
+      session.temp_order_data.selected_addons = selectedAddons;
+      session.current_step = 'awaiting_address';
+      client.sendMessage(msg.from, `📍 Please enter your *delivery address*.`).catch(console.error);
+      break;
+
     case 'awaiting_address':
-      const item = session.temp_order_data.item;
-      const quantity = session.temp_order_data.quantity;
-      const unitPrice = session.temp_order_data.unit_price;
+      const { item, quantity, unit_price, selected_addons = [], restaurant_code } = session.temp_order_data;
       const address = msg.body;
-      const amountPesewas = unitPrice * quantity;
+      let addonsCost = 0;
+
+      const addonsFormatted = selected_addons.map(addon => {
+        addonsCost += addon.price;
+        return { name: addon.name, price: addon.price };
+      });
+
+      const amountPesewas = (unit_price * quantity) + addonsCost;
 
       client.sendMessage(msg.from, "⏳ Processing your order...").catch(console.error);
 
@@ -128,16 +161,21 @@ client.on('message', msg => {
         item,
         quantity,
         address,
-        amount: amountPesewas
+        amount: amountPesewas,
+        restaurant_code,
+        addons: addonsFormatted
       }).then(response => {
         if (response.data.success) {
           const paymentLink = response.data.order_url;
           client.sendMessage(msg.from,
-            `✅ Order received!\n🧾 ${quantity} x ${item}\n📍 ${address}\n\n💳 Pay here:\n${paymentLink}`)
-            .catch(console.error);
+            `✅ Order received!\n🧾 ${quantity} x ${item}\n📍 ${address}` +
+            (addonsFormatted.length > 0 ? `\n➕ Add-ons: ${addonsFormatted.map(a => a.name).join(', ')}` : '') +
+            `\n\n💳 Pay here:\n${paymentLink}`
+          ).catch(console.error);
         } else {
           client.sendMessage(msg.from, "⚠️ Something went wrong. Could not create order.").catch(console.error);
         }
+
         session.temp_order_data = {};
         session.current_step = 'start';
       }).catch(error => {
@@ -156,5 +194,4 @@ client.on('message', msg => {
   sessions.set(phone, session);
 });
 
-// Start WhatsApp client
 client.initialize();
