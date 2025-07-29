@@ -1,11 +1,13 @@
-2025/07/19-18:46:38.117 42b4 Reusing MANIFEST C:\Users\USER\Desktop\Projects\whatsappOrder\nodeWhatsappBot\whatsapp-bot\.wwebjs_auth\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/07/19-18:46:38.134 42b4 Recovering log #240
-2025/07/19-18:46:38.298 42b4 Reusing old log C:\Users\USER\Desktop\Projects\whatsappOrder\nodeWhatsappBot\whatsapp-bot\.wwebjs_auth\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000240.log 
-2025/07/19-18:46:47.144 4760 Manual compaction at level-0 from '\x00\\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00]\x00\x00\x00' @ 0 : 0; will stop at (end)
-2025/07/19-18:46:55.891 5c88 Level-0 table #246: started
-2025/07/19-18:46:55.936 5c88 Level-0 table #246: 1188605 bytes OK
-2025/07/19-18:46:55.937 5c88 Delete type=0 #240
-2025/07/19-18:46:55.946 5c88 Compacting 1@1 + 1@2 files
-2025/07/19-18:46:56.108 5c88 Generated table #247@1: 42321 keys, 1830382 bytes
-2025/07/19-18:46:56.108 5c88 Compacted 1@1 + 1@2 files => 1830382 bytes
-2025/07/19-18:46:56.109 5c88 compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/07/29-17:34:10.661 87a4 Reusing MANIFEST C:\Users\USER\Desktop\Projects\whatsappOrder\nodeWhatsappBot\whatsapp-bot\.wwebjs_auth\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/07/29-17:34:10.663 87a4 Recovering log #263
+2025/07/29-17:34:10.858 87a4 Reusing old log C:\Users\USER\Desktop\Projects\whatsappOrder\nodeWhatsappBot\whatsapp-bot\.wwebjs_auth\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000263.log 
+2025/07/29-17:34:14.453 68ec Level-0 table #268: started
+2025/07/29-17:34:14.481 68ec Level-0 table #268: 348144 bytes OK
+2025/07/29-17:34:14.488 68ec Delete type=0 #263
+2025/07/29-17:34:14.489 68ec Manual compaction at level-0 from '\x00a\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00b\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/07/29-17:34:22.446 3b9c Compacting 1@1 + 1@2 files
+2025/07/29-17:34:22.656 3b9c Generated table #269@1: 51540 keys, 2173233 bytes
+2025/07/29-17:34:22.656 3b9c Compacted 1@1 + 1@2 files => 2173233 bytes
+2025/07/29-17:34:22.657 3b9c compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/07/29-17:34:22.658 3b9c Delete type=2 #265
+2025/07/29-17:34:22.658 3b9c Delete type=2 #268
