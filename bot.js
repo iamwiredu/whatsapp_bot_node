@@ -22,11 +22,11 @@ client.on('ready', () => {
   const PORT = process.env.PORT || 3000;
 
   // ✅ CORS CONFIGURATION
-  app.use(cors({
-    origin: 'https://grabtexts.shop',
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type']
-  }));
+app.use(cors({
+  origin: ['https://www.grabtexts.shop', 'https://grabtexts.shop'],
+  methods: ['POST', 'GET', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
+}));
 
   app.use(express.json());
 
