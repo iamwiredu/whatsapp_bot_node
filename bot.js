@@ -62,7 +62,7 @@ client.on('message', async (msg) => {
 
   const session = sessions.get(phone);
 
-  // Initial trigger
+  // Initial entry
   if (message === 'hi') {
     client.sendMessage(msg.from,
       `👋 Welcome to *GrabTexts*!\n\n🍽️ To get started, type the code of your restaurant or service (e.g. *kbarb*, *sizzlers*)`)
@@ -86,6 +86,24 @@ client.on('message', async (msg) => {
 
         session.temp_order_data.restaurant_code = message;
         session.temp_order_data.menu = menu;
+        session.temp_order_data.restaurant_name = restaurant;
+
+        client.sendMessage(msg.from,
+          `🍽️ *${restaurant}* found!\nHow would you like to continue?\n\n` +
+          `1. View menu here in WhatsApp\n2. Open full catalog (recommended)\n\nType *1* or *2* to choose.`)
+          .catch(console.error);
+
+        session.current_step = 'menu_view_choice';
+      } catch (error) {
+        client.sendMessage(msg.from, `❌ Invalid restaurant code or fetch error.`).catch(console.error);
+        session.current_step = 'start';
+      }
+      break;
+
+    case 'menu_view_choice':
+      if (message === '1') {
+        const menu = session.temp_order_data.menu;
+        const restaurant = session.temp_order_data.restaurant_name;
 
         const menuText = `🍽️ *Menu from ${restaurant}*\n` + menu.map((item, i) => {
           const line = `${i + 1}. ${item.name} - GH₵${item.price}`;
@@ -95,9 +113,14 @@ client.on('message', async (msg) => {
 
         client.sendMessage(msg.from, `${menuText}\n\nReply with the *number* of the item you want to order.`).catch(console.error);
         session.current_step = 'awaiting_item';
-      } catch (error) {
-        client.sendMessage(msg.from, `❌ Invalid restaurant code or fetch error.`).catch(console.error);
-        session.current_step = 'start';
+      } else if (message === '2') {
+        const code = session.temp_order_data.restaurant_code;
+        client.sendMessage(msg.from,
+          `🧾 Tap to browse and order from catalog:\n👉 https://grabtexts.shop/${code}-menu/`)
+          .catch(console.error);
+        session.current_step = 'wait_for_catalog_submission';
+      } else {
+        client.sendMessage(msg.from, `❌ Please type *1* or *2* to continue.`).catch(console.error);
       }
       break;
 
