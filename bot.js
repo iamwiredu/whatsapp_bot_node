@@ -2,6 +2,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const express = require('express');
+const cors = require('cors');  // ✅ ADD CORS support
 
 const client = new Client({
   authStrategy: new LocalAuth(),
@@ -19,6 +20,14 @@ client.on('ready', () => {
 
   const app = express();
   const PORT = process.env.PORT || 3000;
+
+  // ✅ CORS CONFIGURATION
+  app.use(cors({
+    origin: 'https://grabtexts.shop',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type']
+  }));
+
   app.use(express.json());
 
   app.get('/', (req, res) => {
@@ -48,7 +57,7 @@ client.on('ready', () => {
     const { phone, slug, item, quantity, amount, addons } = req.body;
 
     if (!phone || !slug) {
-      return res.status(400).json({ success: false, error: `${phone}` });
+      return res.status(400).json({ success: false, error: 'Missing phone or slug' });
     }
 
     const fullNumber = `${phone}@c.us`;
@@ -58,29 +67,16 @@ client.on('ready', () => {
       (addonList ? `➕ Add-ons: ${addonList}\n` : '') +
       `\n\n📍 Please type your *delivery address* to continue.`;
 
-    if (!sessions.has(phone)) {
-      sessions.set(phone, {
-        current_step: 'awaiting_address',
-        temp_order_data: {
-          item,
-          quantity,
-          unit_price: amount,
-          selected_addons: addons,
-          restaurant_code: slug
-        }
-      });
-    } else {
-      const session = sessions.get(phone);
-      session.current_step = 'awaiting_address';
-      session.temp_order_data = {
+    sessions.set(phone, {
+      current_step: 'awaiting_address',
+      temp_order_data: {
         item,
         quantity,
         unit_price: amount,
         selected_addons: addons,
         restaurant_code: slug
-      };
-      sessions.set(phone, session);
-    }
+      }
+    });
 
     client.sendMessage(fullNumber, message)
       .then(() => res.json({ success: true }))
