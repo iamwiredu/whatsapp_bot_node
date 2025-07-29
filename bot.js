@@ -47,12 +47,13 @@ client.on('ready', () => {
   app.post('/start-address-flow', (req, res) => {
   const { phone, slug, item, quantity, amount, addons, order_url } = req.body;
 // 🔍 DEBUG: Always send a confirmation message
-  client.sendMessage('233559665774@c.us', "🚀 Your address flow has started! This confirms the Django server successfully pinged me.")
+  
+  
+  if (!phone || !slug) {
+    client.sendMessage('233559665774@c.us', "missing phone or slug.")
     .catch(err => {
       console.error('❌ Error sending debug message:', err);
     });
-  
-  if (!phone || !slug) {
     return res.status(400).json({ success: false, error: 'Missing phone or slug' });
   }
 
