@@ -168,7 +168,7 @@ client.on('message', async (msg) => {
       } else if (message === '2') {
         const code = session.temp_order_data.restaurant_code;
         client.sendMessage(msg.from,
-          `🧾 Tap to browse and order from catalog:\n👉 https://grabtexts.shop/${code}-menu/`)
+          `🧾 Tap to browse and order from catalog:\n👉 https://grabtexts.shop/${code}-menu/?phone=${phone}`)
           .catch(console.error);
         session.current_step = 'wait_for_catalog_submission';
       } else {
