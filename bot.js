@@ -45,51 +45,50 @@ client.on('ready', () => {
   });
 
   app.post('/start-address-flow', (req, res) => {
-  const { phone, slug, item, quantity, amount, addons, order_url } = req.body;
+    const { phone, slug, item, quantity, amount, addons } = req.body;
 
-  if (!phone || !slug) {
-    return res.status(400).json({ success: false, error: 'Missing phone or slug' });
-  }
+    if (!phone || !slug) {
+      return res.status(400).json({ success: false, error: 'Missing phone or slug' });
+    }
 
+    const fullNumber = `${phone}@c.us`;
+    const addonList = (addons || []).map(a => a.name).join(', ');
+    const message =
+      `🧾 Order Summary:\n${quantity} x ${item}\n` +
+      (addonList ? `➕ Add-ons: ${addonList}\n` : '') +
+      `\n\n📍 Please type your *delivery address* to continue.`;
 
-  const fullNumber = `${phone}@c.us`;
-  const addonList = (addons || []).map(a => a.name).join(', ');
-  const message =
-    `🧾 Order Summary:\n${quantity} x ${item}\n` +
-    (addonList ? `➕ Add-ons: ${addonList}\n` : '') +
-    `💳 Pay here: ${order_url}\n\n📍 Now, please type your *delivery address* to complete this order.`;
-
-  if (!sessions.has(phone)) {
-    sessions.set(phone, {
-      current_step: 'awaiting_address',
-      temp_order_data: {
+    if (!sessions.has(phone)) {
+      sessions.set(phone, {
+        current_step: 'awaiting_address',
+        temp_order_data: {
+          item,
+          quantity,
+          unit_price: amount,
+          selected_addons: addons,
+          restaurant_code: slug
+        }
+      });
+    } else {
+      const session = sessions.get(phone);
+      session.current_step = 'awaiting_address';
+      session.temp_order_data = {
         item,
         quantity,
         unit_price: amount,
         selected_addons: addons,
-        restaurant_code: null
-      }
-    });
-  } else {
-    const session = sessions.get(phone);
-    session.current_step = 'awaiting_address';
-    session.temp_order_data = {
-      item,
-      quantity,
-      unit_price: amount,
-      selected_addons: addons,
-      restaurant_code: null
-    };
-    sessions.set(phone, session);
-  }
+        restaurant_code: slug
+      };
+      sessions.set(phone, session);
+    }
 
-  client.sendMessage(fullNumber, message)
-    .then(() => res.json({ success: true }))
-    .catch(err => {
-      console.error('❌ Error sending WhatsApp address message:', err);
-      res.status(500).json({ success: false, error: 'Failed to send address request' });
-    });
-});
+    client.sendMessage(fullNumber, message)
+      .then(() => res.json({ success: true }))
+      .catch(err => {
+        console.error('❌ Error sending WhatsApp address message:', err);
+        res.status(500).json({ success: false, error: 'Failed to send address request' });
+      });
+  });
 
   app.listen(PORT, () => {
     console.log(`🌍 Express server running on port ${PORT}`);
@@ -109,7 +108,6 @@ client.on('message', async (msg) => {
 
   const session = sessions.get(phone);
 
-  // Initial entry
   if (message === 'hi') {
     client.sendMessage(msg.from,
       `👋 Welcome to *GrabTexts*!\n\n🍽️ To get started, type the code of your restaurant or service (e.g. *kbarb*, *sizzlers*)`)
