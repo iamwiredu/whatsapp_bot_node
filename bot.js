@@ -1,4 +1,4 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const express = require('express');
@@ -127,6 +127,15 @@ client.on('message', async (msg) => {
         session.temp_order_data.restaurant_code = message;
         session.temp_order_data.menu = menu;
         session.temp_order_data.restaurant_name = restaurant;
+
+        if (restaurant.logo) {
+          try {
+            const media = await MessageMedia.fromUrl(restaurant.logo);
+            await client.sendMessage(msg.from, media);
+          } catch (e) {
+            console.warn('⚠️ Failed to send restaurant logo:', e.message);
+          }
+        }
 
         if (menu.length <= 5) {
           const menuText = `🍽️ *Menu from ${restaurant}*\n` + menu.map((item, i) => {
