@@ -138,7 +138,7 @@ client.on('message', async (msg) => {
         }
 
         if (menu.length <= 5) {
-          const menuText = `🍽️ *Menu from ${restaurant}*\n` + menu.map((item, i) => {
+          const menuText = `🍽️ *Menu from ${restaurant.name}*\n` + menu.map((item, i) => {
             const line = `${i + 1}. ${item.name} - GH₵${item.price}`;
             const addons = item.addons.map(a => `+ ${a.name} (GH₵${a.price / 100})`).join(', ');
             return addons ? `${line}\n    Add-ons: ${addons}` : line;
