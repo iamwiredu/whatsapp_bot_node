@@ -2,7 +2,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const express = require('express');
-const cors = require('cors');  // ✅ ADD CORS support
+const cors = require('cors');
 
 const client = new Client({
   authStrategy: new LocalAuth(),
@@ -21,12 +21,11 @@ client.on('ready', () => {
   const app = express();
   const PORT = process.env.PORT || 3000;
 
-  // ✅ CORS CONFIGURATION
-app.use(cors({
-  origin: ['https://www.grabtexts.shop', 'https://grabtexts.shop'],
-  methods: ['POST', 'GET', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
-}));
+  app.use(cors({
+    origin: ['https://www.grabtexts.shop', 'https://grabtexts.shop'],
+    methods: ['POST', 'GET', 'OPTIONS'],
+    allowedHeaders: ['Content-Type']
+  }));
 
   app.use(express.json());
 
@@ -129,12 +128,22 @@ client.on('message', async (msg) => {
         session.temp_order_data.menu = menu;
         session.temp_order_data.restaurant_name = restaurant;
 
-        client.sendMessage(msg.from,
-          `🍽️ *${restaurant}* found!\nHow would you like to continue?\n\n` +
-          `1. View menu here in WhatsApp\n2. Open full catalog (recommended)\n\nType *1* or *2* to choose.`)
-          .catch(console.error);
+        if (menu.length <= 5) {
+          const menuText = `🍽️ *Menu from ${restaurant}*\n` + menu.map((item, i) => {
+            const line = `${i + 1}. ${item.name} - GH₵${item.price}`;
+            const addons = item.addons.map(a => `+ ${a.name} (GH₵${a.price / 100})`).join(', ');
+            return addons ? `${line}\n    Add-ons: ${addons}` : line;
+          }).join('\n');
 
-        session.current_step = 'menu_view_choice';
+          client.sendMessage(msg.from, `${menuText}\n\nReply with the *number* of the item you want to order.`).catch(console.error);
+          session.current_step = 'awaiting_item';
+        } else {
+          client.sendMessage(msg.from,
+            `🍽️ *${restaurant}* found!\nHow would you like to continue?\n\n` +
+            `1. View menu here in WhatsApp\n2. Open full catalog (recommended)\n\nType *1* or *2* to choose.`)
+            .catch(console.error);
+          session.current_step = 'menu_view_choice';
+        }
       } catch (error) {
         client.sendMessage(msg.from, `❌ Invalid restaurant code or fetch error.`).catch(console.error);
         session.current_step = 'start';
