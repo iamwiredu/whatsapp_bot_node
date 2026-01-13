@@ -1,6 +1,5 @@
-2025/07/29-17:34:09.863 3b9c Reusing MANIFEST C:\Users\USER\Desktop\Projects\whatsappOrder\nodeWhatsappBot\whatsapp-bot\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
-2025/07/29-17:34:09.864 3b9c Recovering log #3
-2025/07/29-17:34:09.865 3b9c Reusing old log C:\Users\USER\Desktop\Projects\whatsappOrder\nodeWhatsappBot\whatsapp-bot\.wwebjs_auth\session\Default\Local Storage\leveldb/000003.log 
-2025/07/29-17:36:11.690 68ec Level-0 table #5: started
-2025/07/29-17:36:11.698 68ec Level-0 table #5: 19319 bytes OK
-2025/07/29-17:36:11.699 68ec Delete type=0 #3
+2026/01/13-09:48:12.633 2e40 Creating DB C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\Local Storage\leveldb since it was missing.
+2026/01/13-09:48:14.307 2e40 Reusing MANIFEST C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
+2026/01/13-09:48:14.311 2e40 Recovering log #4
+2026/01/13-09:48:14.474 2e40 Reusing old log C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\Local Storage\leveldb/000004.log 
+2026/01/13-09:48:14.477 2e40 Delete type=2 #5

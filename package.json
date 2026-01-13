@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node bot.js",
+    "install": "node node_modules/puppeteer/install.js"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +14,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^4.22.1",
+    "puppeteer": "^23.11.1",
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.34.4"

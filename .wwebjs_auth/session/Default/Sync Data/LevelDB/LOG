@@ -1,0 +1,4 @@
+2026/01/13-09:48:11.447 4c08 Creating DB C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\Sync Data\LevelDB since it was missing.
+2026/01/13-09:48:13.700 4c08 Reusing MANIFEST C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\Sync Data\LevelDB/MANIFEST-000001
+2026/01/13-09:48:13.701 4c08 Recovering log #3
+2026/01/13-09:48:13.703 4c08 Reusing old log C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\Sync Data\LevelDB/000003.log 

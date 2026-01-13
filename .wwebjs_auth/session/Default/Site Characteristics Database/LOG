@@ -1,0 +1,4 @@
+2026/01/13-09:48:11.449 f70 Creating DB C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\Site Characteristics Database since it was missing.
+2026/01/13-09:48:14.446 f70 Reusing MANIFEST C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\Site Characteristics Database/MANIFEST-000001
+2026/01/13-09:48:14.462 f70 Recovering log #3
+2026/01/13-09:48:14.465 f70 Reusing old log C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\Site Characteristics Database/000003.log 

@@ -1,2 +1,4 @@
-2025/07/29-17:14:32.896 9e4 Creating DB C:\Users\USER\Desktop\Projects\whatsappOrder\nodeWhatsappBot\whatsapp-bot\.wwebjs_auth\session\Default\shared_proto_db\metadata since it was missing.
-2025/07/29-17:14:32.913 9e4 Reusing MANIFEST C:\Users\USER\Desktop\Projects\whatsappOrder\nodeWhatsappBot\whatsapp-bot\.wwebjs_auth\session\Default\shared_proto_db\metadata/MANIFEST-000001
+2026/01/13-09:48:14.522 16a4 Creating DB C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\shared_proto_db\metadata since it was missing.
+2026/01/13-09:48:16.051 16a4 Reusing MANIFEST C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\shared_proto_db\metadata/MANIFEST-000001
+2026/01/13-09:48:16.052 16a4 Recovering log #3
+2026/01/13-09:48:16.195 16a4 Reusing old log C:\Users\user\Desktop\Projects\whatsapp_bot_node-master\whatsapp_bot_node-master\.wwebjs_auth\session\Default\shared_proto_db\metadata/000003.log 
