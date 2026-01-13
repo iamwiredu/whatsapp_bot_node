@@ -1,279 +1,228 @@
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const axios = require('axios');
-const express = require('express');
-const cors = require('cors');
+const { Client, LocalAuth } = require("whatsapp-web.js");
+const qrcodeTerminal = require("qrcode-terminal");
+const QRCode = require("qrcode"); // npm i qrcode
+const axios = require("axios");
+const express = require("express");
+const cors = require("cors");
 
+// ----------------------------
+// Config
+// ----------------------------
+const DJANGO_BASE_URL = process.env.DJANGO_BASE_URL || "https://www.grabtexts.shop";
+const DJANGO_CHAT_PATH = process.env.DJANGO_CHAT_PATH || "/api/chat/incoming/";
+const DJANGO_CHAT_URL = `${DJANGO_BASE_URL.replace(/\/$/, "")}${DJANGO_CHAT_PATH}`;
+const DJANGO_AUTH_TOKEN = process.env.DJANGO_AUTH_TOKEN || null;
+
+const PORT = process.env.PORT || 3000;
+
+// ----------------------------
+// Express MUST start immediately (fixes Render port detection)
+// ----------------------------
+const app = express();
+
+app.use(
+  cors({
+    origin: ["https://www.grabtexts.shop", "https://grabtexts.shop"],
+    methods: ["POST", "GET", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+app.use(express.json());
+
+let WA_READY = false;
+let LAST_QR_DATAURL = null;
+
+app.get("/", (req, res) => {
+  res.send("🤖 WhatsApp adapter running ✅ — visit /qr to scan if needed.");
+});
+
+app.get("/health", (req, res) => {
+  res.json({
+    ok: true,
+    whatsapp_ready: WA_READY,
+    has_qr: !!LAST_QR_DATAURL,
+    django_chat_url: DJANGO_CHAT_URL,
+  });
+});
+
+app.get("/qr", (req, res) => {
+  if (WA_READY) return res.send("✅ WhatsApp connected. No QR needed.");
+  if (!LAST_QR_DATAURL) return res.status(404).send("❌ No QR yet. Check logs / wait a bit.");
+  res.send(`
+    <html>
+      <body style="font-family: Arial; padding: 20px;">
+        <h2>Scan this QR with WhatsApp</h2>
+        <p>WhatsApp → Linked devices → Link a device</p>
+        <img src="${LAST_QR_DATAURL}" style="width:320px;height:320px;" />
+        <p>Refresh this page if it expires.</p>
+      </body>
+    </html>
+  `);
+});
+
+// IMPORTANT: bind to 0.0.0.0 so Render sees it
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🌍 Express server running on port ${PORT}`);
+  console.log(`➡️ Django chat URL: ${DJANGO_CHAT_URL}`);
+});
+
+// ----------------------------
+// WhatsApp client
+// ----------------------------
 const client = new Client({
   authStrategy: new LocalAuth(),
-  puppeteer: { headless: true }
+  puppeteer: {
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"], // important on hosts like Render
+    // executablePath: process.env.PUPPETEER_EXECUTABLE_PATH, // only if you're using Docker+Chromium
+  },
 });
 
-const sessions = new Map();
+client.on("qr", async (qr) => {
+  console.log("📲 QR RECEIVED (also available at /qr)");
+  qrcodeTerminal.generate(qr, { small: true });
 
-client.on('qr', qr => {
-  qrcode.generate(qr, { small: true });
+  try {
+    LAST_QR_DATAURL = await QRCode.toDataURL(qr);
+  } catch (e) {
+    console.error("❌ Failed to generate QR image:", e.message || e);
+  }
 });
 
-client.on('ready', () => {
-  console.log('✅ WhatsApp client is ready!');
+client.on("authenticated", () => console.log("✅ WhatsApp authenticated"));
+client.on("auth_failure", (m) => console.error("❌ Auth failure:", m));
 
-  const app = express();
-  const PORT = process.env.PORT || 3000;
+client.on("ready", () => {
+  WA_READY = true;
+  LAST_QR_DATAURL = null;
+  console.log("✅ WhatsApp client is ready!");
+});
 
-  app.use(cors({
-    origin: ['https://www.grabtexts.shop', 'https://grabtexts.shop'],
-    methods: ['POST', 'GET', 'OPTIONS'],
-    allowedHeaders: ['Content-Type']
-  }));
+client.on("disconnected", (reason) => {
+  WA_READY = false;
+  console.warn("⚠️ WhatsApp disconnected:", reason);
+});
 
-  app.use(express.json());
+// ----------------------------
+// Keep your existing helper endpoints
+// ----------------------------
+app.post("/send-payment-confirmation", async (req, res) => {
+  try {
+    if (!WA_READY) return res.status(503).json({ success: false, error: "WhatsApp not ready yet" });
 
-  app.get('/', (req, res) => {
-    res.send('🤖 WhatsApp bot is running and connected ✅');
-  });
+    const { phone, order_id } = req.body;
+    if (!phone) return res.status(400).json({ success: false, error: "Missing phone" });
 
-  app.post('/send-payment-confirmation', (req, res) => {
-    const { phone, slug, order_id } = req.body;
-
-    if (!phone || !slug) {
-      return res.status(400).json({ success: false, error: 'Missing phone or slug' });
-    }
-
+    const fullNumber = `${String(phone).replace(/\D/g, "")}@c.us`;
     const trackingUrl = `https://wa.me/+233559665774`;
-    const message = `✅ Payment received for your order #${order_id}!\nWe will give you a call in a sec.\nContact support at ${trackingUrl}`;
-    const fullNumber = `${phone}@c.us`;
 
-    client.sendMessage(fullNumber, message)
-      .then(() => res.json({ success: true }))
-      .catch(err => {
-        console.error('❌ Error sending WhatsApp message:', err);
-        res.status(500).json({ success: false, error: 'Failed to send message' });
-      });
-  });
+    const message =
+      `✅ Payment received for your order #${order_id}!\n` +
+      `We will give you a call in a sec.\n` +
+      `Contact support at ${trackingUrl}`;
 
-  app.post('/start-address-flow', (req, res) => {
-    const { phone, slug, item, quantity, amount, addons } = req.body;
+    await client.sendMessage(fullNumber, message);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Error sending WhatsApp message:", err);
+    return res.status(500).json({ success: false, error: "Failed to send message" });
+  }
+});
 
-    if (!phone || !slug) {
-      return res.status(400).json({ success: false, error: 'Missing phone or slug' });
-    }
+app.post("/start-address-flow", async (req, res) => {
+  try {
+    if (!WA_READY) return res.status(503).json({ success: false, error: "WhatsApp not ready yet" });
 
-    const fullNumber = `${phone}@c.us`;
-    const addonList = (addons || []).map(a => a.name).join(', ');
+    const { phone, item, quantity, addons } = req.body;
+    if (!phone) return res.status(400).json({ success: false, error: "Missing phone" });
+
+    const fullNumber = `${String(phone).replace(/\D/g, "")}@c.us`;
+    const addonList = (addons || []).map((a) => a.name).join(", ");
+
     const message =
       `🧾 Order Summary:\n${quantity} x ${item}\n` +
-      (addonList ? `➕ Add-ons: ${addonList}\n` : '') +
+      (addonList ? `➕ Add-ons: ${addonList}\n` : "") +
       `\n\n📍 Please type your *delivery address* to continue.`;
 
-    sessions.set(phone, {
-      current_step: 'awaiting_address',
-      temp_order_data: {
-        item,
-        quantity,
-        unit_price: amount,
-        selected_addons: addons,
-        restaurant_code: slug
-      }
-    });
-
-    client.sendMessage(fullNumber, message)
-      .then(() => res.json({ success: true }))
-      .catch(err => {
-        console.error('❌ Error sending WhatsApp address message:', err);
-        res.status(500).json({ success: false, error: 'Failed to send address request' });
-      });
-  });
-
-  app.listen(PORT, () => {
-    console.log(`🌍 Express server running on port ${PORT}`);
-  });
+    await client.sendMessage(fullNumber, message);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Error sending WhatsApp address message:", err);
+    return res.status(500).json({ success: false, error: "Failed to send address request" });
+  }
 });
 
-client.on('message', async (msg) => {
-  const phone = msg.from.split('@')[0];
-  const message = msg.body.trim().toLowerCase();
+// ----------------------------
+// Helpers
+// ----------------------------
+function isGroupChat(from) {
+  return typeof from === "string" && from.endsWith("@g.us");
+}
 
-  if (!sessions.has(phone)) {
-    sessions.set(phone, {
-      current_step: 'start',
-      temp_order_data: {}
-    });
+function extractExternalIdFromMsg(msg) {
+  // "233XXXXXXXXX@c.us" -> "233XXXXXXXXX"
+  const raw = String(msg.from || "");
+  const left = raw.split("@")[0] || "";
+  return left.replace(/\D/g, "");
+}
+
+function getProviderMessageId(msg) {
+  if (msg?.id?._serialized) return msg.id._serialized;
+  if (msg?.id?.id) return msg.id.id;
+  return null;
+}
+
+async function forwardToDjango({ external_id, text, provider_message_id, raw }) {
+  const headers = {};
+  if (DJANGO_AUTH_TOKEN) headers["Authorization"] = `Bearer ${DJANGO_AUTH_TOKEN}`;
+
+  const payload = { external_id, text, provider_message_id, raw };
+
+  const resp = await axios.post(DJANGO_CHAT_URL, payload, {
+    headers,
+    timeout: 15000,
+  });
+
+  return resp.data.reply_text || resp.data.reply || "";
+}
+
+// ----------------------------
+// Inbound WhatsApp → Django → Reply
+// ----------------------------
+client.on("message", async (msg) => {
+  try {
+    if (!WA_READY) return;
+    if (isGroupChat(msg.from)) return;
+
+    const external_id = extractExternalIdFromMsg(msg);
+    const provider_message_id = getProviderMessageId(msg);
+    const text = (msg.body || "").trim();
+    if (!external_id || !text) return;
+
+    const raw = {
+      from: msg.from,
+      timestamp: msg.timestamp,
+      hasMedia: !!msg.hasMedia,
+      type: msg.type,
+    };
+
+    const replyText = await forwardToDjango({ external_id, text, provider_message_id, raw });
+
+    const finalReply =
+      replyText && String(replyText).trim().length > 0
+        ? replyText
+        : "⚠️ Sorry — I couldn’t process that. Please try again.";
+
+    await client.sendMessage(msg.from, finalReply);
+  } catch (err) {
+    console.error("❌ Error handling inbound message:", err?.response?.data || err.message || err);
+    try {
+      await client.sendMessage(msg.from, "⚠️ System is busy right now. Please try again in a moment.");
+    } catch (e) {
+      console.error("❌ Failed to send fallback message:", e.message || e);
+    }
   }
-
-  const session = sessions.get(phone);
-
-  if (message === 'hi') {
-    client.sendMessage(msg.from,
-      `👋 Welcome to *GrabTexts*!\n\n🍽️ To get started, type the code of your restaurant or service (e.g. *kbarb*, *sizzlers*)`)
-      .catch(console.error);
-
-    session.current_step = 'awaiting_restaurant_code';
-    session.temp_order_data = {};
-    return;
-  }
-
-  switch (session.current_step) {
-    case 'awaiting_restaurant_code':
-      try {
-        const response = await axios.get(`https://grabtexts.shop/api/menu/${message}/`);
-        const { restaurant, menu } = response.data;
-
-        if (!menu || menu.length === 0) {
-          client.sendMessage(msg.from, `😕 No menu items found for *${restaurant}*.`).catch(console.error);
-          return;
-        }
-
-        session.temp_order_data.restaurant_code = message;
-        session.temp_order_data.menu = menu;
-        session.temp_order_data.restaurant_name = restaurant;
-
-        if (restaurant.logo) {
-          try {
-            const media = await MessageMedia.fromUrl(restaurant.logo);
-            await client.sendMessage(msg.from, media);
-          } catch (e) {
-            console.warn('⚠️ Failed to send restaurant logo:', e.message);
-          }
-        }
-
-        if (menu.length <= 5) {
-          const menuText = `🍽️ *Menu from ${restaurant.name}*\n` + menu.map((item, i) => {
-            const line = `${i + 1}. ${item.name} - GH₵${item.price}`;
-            const addons = item.addons.map(a => `+ ${a.name} (GH₵${a.price / 100})`).join(', ');
-            return addons ? `${line}\n    Add-ons: ${addons}` : line;
-          }).join('\n');
-
-          client.sendMessage(msg.from, `${menuText}\n\nReply with the *number* of the item you want to order.`).catch(console.error);
-          session.current_step = 'awaiting_item';
-        } else {
-          client.sendMessage(msg.from,
-            `🍽️ *${restaurant}* found!\nHow would you like to continue?\n\n` +
-            `1. View menu here in WhatsApp\n2. Open full catalog (recommended)\n\nType *1* or *2* to choose.`)
-            .catch(console.error);
-          session.current_step = 'menu_view_choice';
-        }
-      } catch (error) {
-        client.sendMessage(msg.from, `❌ Invalid restaurant code or fetch error.`).catch(console.error);
-        session.current_step = 'start';
-      }
-      break;
-
-    case 'menu_view_choice':
-      if (message === '1') {
-        const menu = session.temp_order_data.menu;
-        const restaurant = session.temp_order_data.restaurant_name;
-
-        const menuText = `🍽️ *Menu from ${restaurant}*\n` + menu.map((item, i) => {
-          const line = `${i + 1}. ${item.name} - GH₵${item.price}`;
-          const addons = item.addons.map(a => `+ ${a.name} (GH₵${a.price / 100})`).join(', ');
-          return addons ? `${line}\n    Add-ons: ${addons}` : line;
-        }).join('\n');
-
-        client.sendMessage(msg.from, `${menuText}\n\nReply with the *number* of the item you want to order.`).catch(console.error);
-        session.current_step = 'awaiting_item';
-      } else if (message === '2') {
-        const code = session.temp_order_data.restaurant_code;
-        client.sendMessage(msg.from,
-          `🧾 Tap to browse and order from catalog:\n👉 https://grabtexts.shop/${code}-menu/?phone=${phone}`)
-          .catch(console.error);
-        session.current_step = 'wait_for_catalog_submission';
-      } else {
-        client.sendMessage(msg.from, `❌ Please type *1* or *2* to continue.`).catch(console.error);
-      }
-      break;
-
-    case 'awaiting_item':
-      const index = parseInt(message) - 1;
-      const menu = session.temp_order_data.menu;
-
-      if (!isNaN(index) && menu && menu[index]) {
-        const selected = menu[index];
-        session.temp_order_data.item = selected.name;
-        session.temp_order_data.unit_price = selected.price;
-        session.temp_order_data.quantity = 1;
-        session.temp_order_data.addons = selected.addons || [];
-        session.current_step = selected.addons.length > 0 ? 'awaiting_addon' : 'awaiting_address';
-
-        if (selected.addons.length > 0) {
-          const addonOptions = selected.addons.map((addon, i) => `${i + 1}. ${addon.name} (+GH₵${addon.price / 100})`).join('\n');
-          client.sendMessage(msg.from, `➕ Select *add-ons* by typing the numbers separated by comma (or type 0 to skip):\n${addonOptions}`).catch(console.error);
-        } else {
-          client.sendMessage(msg.from, `📍 Please enter your *delivery address*.`).catch(console.error);
-        }
-      } else {
-        client.sendMessage(msg.from, `❌ Invalid selection. Reply with a valid number.`).catch(console.error);
-      }
-      break;
-
-    case 'awaiting_addon':
-      const addonIndices = message.split(',').map(m => parseInt(m.trim()) - 1);
-      const availableAddons = session.temp_order_data.addons;
-      const selectedAddons = [];
-
-      if (!(addonIndices.length === 1 && addonIndices[0] === -1)) {
-        addonIndices.forEach(i => {
-          if (!isNaN(i) && availableAddons[i]) {
-            selectedAddons.push(availableAddons[i]);
-          }
-        });
-      }
-
-      session.temp_order_data.selected_addons = selectedAddons;
-      session.current_step = 'awaiting_address';
-      client.sendMessage(msg.from, `📍 Please enter your *delivery address*.`).catch(console.error);
-      break;
-
-    case 'awaiting_address':
-      const { item, quantity, unit_price, selected_addons = [], restaurant_code } = session.temp_order_data;
-      const address = msg.body;
-      let addonsCost = 0;
-
-      const addonsFormatted = selected_addons.map(addon => {
-        addonsCost += addon.price;
-        return { name: addon.name, price: addon.price };
-      });
-
-      const amountPesewas = (unit_price * quantity) + addonsCost;
-
-      client.sendMessage(msg.from, "⏳ Processing your order...").catch(console.error);
-
-      axios.post('https://grabtexts.shop/create-order/', {
-        phone_number: phone,
-        item,
-        quantity,
-        address,
-        amount: amountPesewas,
-        restaurant_code,
-        addons: addonsFormatted
-      }).then(response => {
-        if (response.data.success) {
-          const paymentLink = response.data.order_url;
-          client.sendMessage(msg.from,
-            `✅ Order received!\n🧾 ${quantity} x ${item}\n📍 ${address}` +
-            (addonsFormatted.length > 0 ? `\n➕ Add-ons: ${addonsFormatted.map(a => a.name).join(', ')}` : '') +
-            `\n\n💳 Pay here:\n${paymentLink}`
-          ).catch(console.error);
-        } else {
-          client.sendMessage(msg.from, "⚠️ Something went wrong. Could not create order.").catch(console.error);
-        }
-
-        session.temp_order_data = {};
-        session.current_step = 'start';
-      }).catch(error => {
-        console.error("❌ Error creating order:", error.response?.data || error.message);
-        client.sendMessage(msg.from, "⚠️ Error processing your order. Please type *hi* to try again.").catch(console.error);
-        session.temp_order_data = {};
-        session.current_step = 'start';
-      });
-      break;
-
-    default:
-      client.sendMessage(msg.from, "👋 Hi! To begin, type *hi*.").catch(console.error);
-      session.current_step = 'start';
-  }
-
-  sessions.set(phone, session);
 });
 
 client.initialize();
